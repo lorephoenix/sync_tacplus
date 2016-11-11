@@ -230,22 +230,111 @@ foreach(@arrayOfGroupDNs) {																			# Loop through key list 'Groups'
 	my %members;																					# Empty hash to store our memberuid and their displayNames
 	my $level;																						# Initiate an empty variable to store our prv-lvl value
 	my $description;																				# Description of the group
+	my $commands;																					# Initiate commands
+	my $default_service = "deny";																	# Pre-set default service
+
 	my $valref = $$groups_href{$_};																	
 	given(lc($valref->{description}[0])) {															# Depend the substring within our description value
 		when( /^level 15:/) { 
 						$level = 15;
+						$default_service = "permit";
 						$description = "Administrator group"; }										# Substring = "level 15:"
 		when( /^level 10:/) { 
 						$level = 10;
+						$default_service = "permit";
+						$commands = "\n\tcmd=switchport trunk allowed vlan add {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=switchport trunk allowed vlan remove {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=switchport trunk allowed vlan none {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=switchport trunk allowed vlan all {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=switchport trunk allowed vlan except {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=switchport trunk allowed vlan {";
+						$commands .= "\n\t\t deny .*";
+						$commands .= "\n\t}";
 						$description = "Technician group"; }										# Substring = "level 10"
 		when( /^level 7:/) { 
 						$level = 7;
+						$commands = "\n\tcmd=show {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=ping {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=traceroute {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=test {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=exit {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=terminal {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=enable {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=snmp-server {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=no snmp-server {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=logging {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=no logging {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=interface {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=description {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=lldp {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=config {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
 						$description = "Operator group"; }											# Substring = "level 7:"
 		when( /^level 5:/) { 
 						$level = 5;
+						$commands = "\n\tcmd=show {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=ping {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=traceroute {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=test {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=exit {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
 						$description = "Helpdesk group"; }											# Substring = "level 5:"
 		when( /^level 1:/) { 
 						$level = 1;
+						$commands = "\n\tcmd=show {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
+						$commands = "\n\tcmd=exit {";
+						$commands .= "\n\t\t permit .*";
+						$commands .= "\n\t}";
 						$description = "View group"; }												# Substring = "level 1:"
 	} # End given, ($valref->{description}[0])
 	
@@ -287,11 +376,12 @@ foreach(@arrayOfGroupDNs) {																			# Loop through key list 'Groups'
 		$parent_h{$valref->{cn}[0]}{memberuid} = \%members;											# Store our build up hash %members into our hash %parent_h under key memberuid
 		print $fh "\n# " .$description ." (lvl" .$level. ")" ;										# Write into ...
 		print $fh "\ngroup = " .$valref->{cn}[0]. " {";												# Write into ...
-		print $fh "\n\tdefault service = permit";													# Write into
+		print $fh "\n\tdefault service = " .$default_service;										# Write into
 		print $fh "\n\tlogin = PAM";																# Write into ...
 		print $fh "\n\tservice = exec {";															# Write into ...
 		print $fh "\n\t\tpriv-lvl = " . $level;														# Write into ...
 		print $fh "\n\t\t}";																		# Write into ...
+		print $fh $commands;																		# Write into ...
 		print $fh "\n\t}\n";																		# Write into ...
 	} # End If, (scalar(@members) > 0)
 } # End foreach, (@arrayOfGroupDNs)
