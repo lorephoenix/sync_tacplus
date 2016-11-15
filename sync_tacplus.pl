@@ -230,7 +230,7 @@ foreach(@arrayOfGroupDNs) {																			# Loop through key list 'Groups'
 	my %members;																					# Empty hash to store our memberuid and their displayNames
 	my $level;																						# Initiate an empty variable to store our prv-lvl value
 	my $description;																				# Description of the group
-	my $commands;																					# Initiate commands
+	my $commands = "";																				# Initiate commands
 	my $default_service = "deny";																	# Pre-set default service
 
 	my $valref = $$groups_href{$_};																	
