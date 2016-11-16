@@ -47,27 +47,37 @@ sub createConfigFile {
 		print $fh "\n; and 'cn=groups,cn=compat<ldap_base>'.";
 		print $fh "\n; The memberUid value will also be used to find the displayName of that user";
 		print $fh "\n; located under the LDAP tree 'cn=users,cn=accounts,<ldap_base>'. ";
-		print $fh "\n;\n; ldap_user - only username and must exist as LDAP entry 'uid=<ldap_user>,cn=sysaccounts,cn=etc,<ldap_base>";
-		print $fh "\n; To create a system account, make a LDIF file and copy the following lines into that file:";
-		print $fh "\n; dn: uid=tacplususer,cn=sysaccounts,cn=etc,dc=example,dc=com";
-		print $fh "\n; changetype: add";
-		print $fh "\n; objectclass: account";
-		print $fh "\n; objectclass: simplesecurityobject";
-		print $fh "\n; uid: tacplususer";
-		print $fh "\n; userPassword: secret123";
-		print $fh "\n; passwordExpirationTime: 20380119031407Z";
-		print $fh "\n; nsIdleTimeout: 0";
-		print $fh "\n;\n; Add account into your FreeIPA server:";
-		print $fh "\n; ldapadd -x -D cn='Directory Manager' -W -f tacuser.ldif";
+		print $fh "\n\n; HowTo create a system account.";
+		print $fh "\n; 1. Logon the FreeIPA server";
+		print $fh "\n; 2. Run the following commands";
+		print $fh "\n;\tkinit admin";
+		print $fh "\n;\tipa permission-add 'Tacacs service user read' --right=read  --attrs=displayname --bindtype=permission  --type=user";
+		print $fh "\n;\tipa permission-add 'Tacacs service group read' --right=read  --attrs={cn,description,memberuid} --bindtype=permission  --type='group'";
+		print $fh "\n;\tipa privilege-add 'Tacacs services' --desc='Privileges needed to allow tacacs servers to operate'";
+		print $fh "\n;\tipa privilege-add-permission \"Tacacs services\" --permissions='Tacacs service user read'";
+		print $fh "\n;\tipa privilege-add-permission \"Tacacs services\" --permissions='Tacacs service group read'";
+		print $fh "\n;\tipa role-add 'Tacacs server' --desc=\"Tacacs+ server\"";
+		print $fh "\n;\tipa role-add-privilege --privileges=\"Tacacs services\" 'Tacacs server'";
+		print $fh "\n;\tipa service-add 'tacacs/tacacs.example.com'";
+		print $fh "\n\n; 3. Create an LDIF file and add";
+		print $fh "\n;\tdn: krbprincipalname=tacacs/tacacs.example.com\@EXAMPLE.COM,cn=services,cn=accounts,dc=example,dc=com";
+		print $fh "\n;\tchangetype: modify";
+		print $fh "\n;\tadd: objectClass";
+		print $fh "\n;\tobjectClass: simpleSecurityObject";
+		print $fh "\n;\t-";
+		print $fh "\n;\tadd: userPassword";
+		print $fh "\n;\tuserPassword: mypass";
+		print $fh "\n\n; 4. Modify LDAP entry with your LDIF file";
+		print $fh "\n;\tldapmodify -f tacacs.ldif -x -D \"cn=Directory Manager\" -W -H ldap://freeipa.example.com";
 		print $fh "\n;\n; Edit the /etc/crontab and add to file:";
-		print $fh "\n; */5 * * * * root /opt/tac_plus/sync_tacplus.pl\n\n";
+		print $fh "\n;\t */5 * * * * root /opt/tac_plus/sync_tacplus.pl\n\n";
 		print $fh "[general]\n";
 		print $fh "logfile =  /var/log/tacacs.log\n";
 		print $fh "tacacs_key = secret123\n\n";
 		print $fh "[ldap]\n";
 		print $fh "ldap_base = dc=example,dc=com\n";
-		print $fh "ldap_server = my.example.com\n";
-		print $fh "ldap_user = tacplususer\n";
+		print $fh "ldap_server = freeipa.example.com\n";
+		print $fh "ldap_user = krbprincipalname=tacacs/tacacs.example.com\@EXAMPLE.COM,cn=services,cn=accounts,dc=example,dc=com\n";
 		print $fh "ldap_pwd = mypass\n";
 		print $fh "ldap_group = cs-tacplus-\n";
 	close $fh;
@@ -83,7 +93,7 @@ sub ldapSearch {
 	my $ldap_password = shift;																		# LDAP password linked to system account $ldap_user 
 	my $ldap_user = shift;																			# LDAP system account
 
-	$ldap_user = "uid=" .$ldap_user. ",cn=sysaccounts,cn=etc," .$ldap_base;							# Complete System account
+	#$ldap_user = "uid=" .$ldap_user. ",cn=sysaccounts,cn=etc," .$ldap_base;							# Complete System account
 	$basedn .= "," .$ldap_base;																		# Append base into basedn
 
 	my $ldap = Net::LDAP->new( $ldap_server ) or die "$@";											# Make connection
